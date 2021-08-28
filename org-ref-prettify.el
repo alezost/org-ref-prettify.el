@@ -67,6 +67,12 @@
   :group 'org-ref
   :group 'convenience)
 
+(defcustom org-ref-prettify-format-function #'org-ref-prettify-format
+  "Function used to format a prettified citation link."
+  :type '(choice (function-item org-ref-prettify-format)
+                 (function :tag "Other function"))
+  :group 'org-ref-prettify)
+
 (defvar org-ref-prettify-regexp
   (rx-to-string
    `(and (? "[[") (group (or ,@org-ref-cite-types))
@@ -108,8 +114,8 @@ will not be displayed in the prettified citations.")
                  names
                  " and "))))
 
-(defun org-ref-prettify-format (type author year title
-                                      pre-page page post-page)
+(cl-defun org-ref-prettify-format (&key type author year title
+                                        pre-page page post-page)
   "Return a string formatted for TYPE citation link.
 Any argument must be either a string or nil.
 
@@ -202,15 +208,20 @@ part of the citation."
             (let ((link-beg (max link-beg beg))
                   (link-end (min link-end end)))
               (with-silent-modifications
-              (unless author-at-point
-                (put-text-property link-beg type-end 'org-ref-prettify-author author)
-                (put-text-property link-beg type-end 'org-ref-prettify-year year)
-                (put-text-property link-beg type-end 'org-ref-prettify-title title))
-              (put-text-property link-beg type-end 'org-ref-prettify-fresh t)
-              (put-text-property link-beg link-end 'display
-                                 (org-ref-prettify-format
-                                  type author year title
-                                  pre-page page post-page)))))))))
+                (unless author-at-point
+                  (put-text-property link-beg type-end 'org-ref-prettify-author author)
+                  (put-text-property link-beg type-end 'org-ref-prettify-year year)
+                  (put-text-property link-beg type-end 'org-ref-prettify-title title))
+                (put-text-property link-beg type-end 'org-ref-prettify-fresh t)
+                (put-text-property link-beg link-end 'display
+                                   (funcall org-ref-prettify-format-function
+                                            :type type
+                                            :author author
+                                            :year year
+                                            :title title
+                                            :pre-page pre-page
+                                            :page page
+                                            :post-page post-page)))))))))
   ;; Return nil because we are not adding any face property.
   nil)
 
