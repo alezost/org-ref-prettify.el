@@ -1,4 +1,4 @@
-;;; org-ref-prettify.el --- Prettify org-ref citation links
+;;; org-ref-prettify.el --- Prettify org-ref citation links  -*- lexical-binding: t -*-
 
 ;; Copyright © 2021 Alex Kost
 ;; Copyright © 2021 Vitus Schäfftlein
