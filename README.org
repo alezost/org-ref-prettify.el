@@ -1,0 +1,50 @@
+[[http://www.gnu.org/licenses/gpl-3.0.txt][file:https://img.shields.io/badge/license-GPL_3-orange.svg]]
+
+* About
+
+This Emacs package provides ~org-ref-prettify-mode~.  It displays your
+[[https://github.com/jkitchin/org-ref][org-ref]] citation links in a more friendly and readable format.
+
+| Without ~org-ref-prettify-mode~ | With ~org-ref-prettify-mode~ |
+| [[file:pictures/disabled.png]]      | [[file:pictures/enabled.png]]    |
+
+* Installation
+
+** Manual
+
+For the manual installation, clone the repo, add the directory to
+~load-path~, and add an autoload for the minor mode:
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "/path/to/org-ref-prettify")
+(autoload 'org-ref-prettify-mode "org-ref-prettify" nil t)
+#+END_SRC
+
+* Usage
+
+To test this mode, open an org buffer with citation links, and run =M-x
+org-ref-prettify-mode=.  The links should be "prettified" as shown
+above.  Run the same command again to disable this mode.
+
+If you wish to enable the mode every time you open an org-mode file, you
+may do it with a setting like this:
+
+#+BEGIN_SRC emacs-lisp
+(with-eval-after-load 'org
+  (add-hook 'org-mode-hook 'org-ref-prettify-mode))
+#+END_SRC
+
+** Editing citation links
+
+If ~org-ref-prettify-mode~ is enabled, you cannot (and should not try
+to!) edit citation links directly.  Instead, you can edit a link in the
+minibuffer using one of the following methods:
+
+- moving the point to a link and pressing =C-RET=,
+- right-clicking on a link with your mouse.
+
+* Credits
+
+This package could not have been developed without the collaboration of
+Vitus Schäfftlein, whose bug-reports and improvement suggestions were an
+invaluable source to improving the functionality of the package.
