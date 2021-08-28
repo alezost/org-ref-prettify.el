@@ -43,6 +43,10 @@ minibuffer using one of the following methods:
 - moving the point to a link and pressing =C-RET=,
 - right-clicking on a link with your mouse.
 
+Note that if you leave a link of the following type =[[citation][]]=
+(the second pair of brackets is empty), it will be changed to =citation=
+as the former is not a proper org link.
+
 * Credits
 
 This package could not have been developed without the collaboration of
