@@ -50,5 +50,5 @@ as the former is not a proper org link.
 * Credits
 
 This package could not have been developed without the collaboration of
-Vitus Schäfftlein, whose bug-reports and improvement suggestions were an
+[[https://github.com/Perangelot][Vitus Schäfftlein]], whose bug-reports and improvement suggestions were an
 invaluable source to improving the functionality of the package.
