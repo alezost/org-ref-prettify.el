@@ -1,4 +1,5 @@
-[[http://www.gnu.org/licenses/gpl-3.0.txt][file:https://img.shields.io/badge/license-GPL_3-orange.svg]]
+[[https://www.gnu.org/licenses/gpl-3.0.txt][file:https://img.shields.io/badge/license-GPL_3-orange.svg]]
+[[https://melpa.org/#/org-ref-prettify][file:https://melpa.org/packages/org-ref-prettify-badge.svg]]
 
 * About
 
@@ -9,6 +10,11 @@ This Emacs package provides ~org-ref-prettify-mode~.  It displays your
 | [[file:pictures/disabled.png]]      | [[file:pictures/enabled.png]]    |
 
 * Installation
+
+** Automatic
+
+This package can be installed from [[https://melpa.org/][MELPA]] (with =M-x package-install= or
+=M-x list-packages=).
 
 ** Manual
 
