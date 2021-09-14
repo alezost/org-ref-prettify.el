@@ -355,7 +355,7 @@ be one of: `type', `key', `page', `beg', or `end'."
                   (goto-char beg)
                   (delete-region beg end)
                   (insert (org-ref-prettify-strip-link new)))))
-          (error "Not at a citation link"))))))
+          (user-error "Not at a citation link"))))))
 
 ;;;###autoload
 (defun org-ref-prettify-edit-link-at-mouse (event &optional where)
