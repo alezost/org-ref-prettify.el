@@ -73,6 +73,11 @@
                  (function :tag "Other function"))
   :group 'org-ref-prettify)
 
+(defcustom org-ref-prettify-space-before-page-number t
+  "If nil, do not put a space between \"p.\" and page number."
+  :type 'boolean
+  :group 'org-ref-prettify)
+
 (defvar org-ref-prettify-regexp
   (rx-to-string
    `(and (? "[[") (group (or ,@org-ref-cite-types))
@@ -127,7 +132,9 @@ PRE-PAGE and POST-PAGE are what taken from [PRE-PAGE::PAGE::POST-PAGE]
 part of the citation."
   (let ((page (and page (not (string= "" page))
                    (concat (if (cdr (split-string page "-"))
-                               "pp. " "p. ")
+                               "pp." "p.")
+                           (if org-ref-prettify-space-before-page-number
+                               " " "")
                            page
                            (and post-page (concat ", " post-page)))))
         (author (if pre-page
