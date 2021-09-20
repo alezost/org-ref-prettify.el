@@ -34,7 +34,7 @@
 ;;   [[cite:CoxeterPG2ed][53]]          ->  Coxeter, 1987, p. 53
 ;;   [[citetitle:CoxeterPG2ed]]         ->  Projective Geometry
 ;;   citeauthor:CoxeterPG2ed            ->  Coxeter
-;;   [[parencite:CoxeterPG2ed][36-44]]  ->  (Coxeter, 1987, pp.  36-44)
+;;   [[parencite:CoxeterPG2ed][36-44]]  ->  (Coxeter, 1987, pp. 36-44)
 ;;
 ;; The citation links themselves are not changed, they are just
 ;; displayed differently.  You can disable the mode by running "M-x
@@ -76,7 +76,7 @@
 (defvar org-ref-prettify-regexp
   (rx-to-string
    `(and (? "[[") (group (or ,@org-ref-cite-types))
-         ":" (group (one-or-more (any alnum "-_"))) (? "]")
+         ":" (group (one-or-more (any alnum "-_,"))) (? "]")
          (? "["
             (? (group (* (any alpha space))) "::")
             (group (* (any digit "-")))
@@ -134,11 +134,6 @@ part of the citation."
                     (concat pre-page " " author)
                   author)))
     (cond
-     ((equal type "parencite")
-      (concat "(" author
-              (and year (concat ", " year))
-              (and page (concat ", " page))
-              ")"))
      ((equal type "textcite")
       (concat author " (" year
               (and page (if year (concat ", " page) page))
@@ -151,28 +146,36 @@ part of the citation."
               (and year (concat ", " year))
               (and page (concat ", " page)))))))
 
+(defun org-ref-prettify-get-entry-fields (entry)
+  "Return (AUTHOR YEAR TITLE) list for the citation ENTRY."
+  (if entry
+      (let ((author (cdr (assoc "author" entry)))
+            (year   (or (cdr (assoc "year" entry))
+                        (let ((date (cdr (assoc "date" entry))))
+                          (and date
+                               (car (split-string date "-"))))))
+            (title  (cdr (assoc "title" entry))))
+        (list (and (stringp author)
+                   (org-ref-prettify-format-author author))
+              (and (stringp year)
+                   (replace-regexp-in-string
+                    org-ref-prettify-remove-general-regexp
+                    "" year))
+              (and (stringp title)
+                   (replace-regexp-in-string
+                    org-ref-prettify-remove-general-regexp
+                    "" title))))
+    (list nil nil nil)))
+
 (defun org-ref-prettify-get-fields (key)
-  "Return (AUTHOR YEAR TITLE) list for the citation KEY."
-  (let* ((bibtex-completion-bibliography (org-ref-find-bibliography))
-         (entry (ignore-errors (bibtex-completion-get-entry key))))
-    (if entry
-        (let ((author (cdr (assoc "author" entry)))
-              (year   (or (cdr (assoc "year" entry))
-                          (let ((date (cdr (assoc "date" entry))))
-                            (and date
-                                 (car (split-string date "-"))))))
-              (title  (cdr (assoc "title" entry))))
-          (list (and (stringp author)
-                     (org-ref-prettify-format-author author))
-                (and (stringp year)
-                     (replace-regexp-in-string
-                      org-ref-prettify-remove-general-regexp
-                      "" year))
-                (and (stringp title)
-                     (replace-regexp-in-string
-                      org-ref-prettify-remove-general-regexp
-                      "" title))))
-      (list nil nil nil))))
+  "Return (AUTHOR YEAR TITLE) list for the citation KEY.
+KEY may be a single key or a list of keys."
+  (let ((bibtex-completion-bibliography (org-ref-find-bibliography))
+        (keys (if (listp key) key (list key))))
+    (mapcar (lambda (key)
+              (org-ref-prettify-get-entry-fields
+               (ignore-errors (bibtex-completion-get-entry key))))
+            keys)))
 
 (defun org-ref-prettify-put ()
   "Prettify matching region in the current buffer."
@@ -194,34 +197,44 @@ part of the citation."
                           (- link-end
                              (or (org-element-property :post-blank link)
                                  0))))
-           (author-at-point (get-text-property type-end 'org-ref-prettify-author))
-           (fresh           (get-text-property type-end 'org-ref-prettify-fresh)))
+           (data-at-point (get-text-property type-end 'org-ref-prettify-data))
+           (fresh         (get-text-property type-end 'org-ref-prettify-fresh)))
       (when (and link link-beg link-end
-                 (or (not fresh) (null author-at-point)))
-        (cl-multiple-value-bind (author year title)
-            (if author-at-point
-                (list author-at-point
-                      (get-text-property type-end 'org-ref-prettify-year)
-                      (get-text-property type-end 'org-ref-prettify-title))
-              (org-ref-prettify-get-fields key))
-          (when (or author year title)
-            (let ((link-beg (max link-beg beg))
-                  (link-end (min link-end end)))
+                 (or (not fresh) (null data-at-point)))
+        (let* ((data (or data-at-point
+                         (delq nil
+                               (org-ref-prettify-get-fields
+                                (split-string key ",")))))
+               (strings
+                (mapcar (lambda (fields)
+                          (cl-multiple-value-bind (author year title)
+                              fields
+                            (when (or author year title)
+                              (funcall org-ref-prettify-format-function
+                                       :type type
+                                       :author author
+                                       :year year
+                                       :title title
+                                       :pre-page pre-page
+                                       :page page
+                                       :post-page post-page))))
+                        data))
+               (strings (delq nil strings)))
+          (when strings
+            (let* ((link-beg (max link-beg beg))
+                   (link-end (min link-end end))
+                   (display-string (mapconcat #'identity strings "; "))
+                   (display-string (if (equal type "parencite")
+                                       (concat "(" display-string ")")
+                                     display-string)))
               (with-silent-modifications
-                (unless author-at-point
-                  (put-text-property link-beg type-end 'org-ref-prettify-author author)
-                  (put-text-property link-beg type-end 'org-ref-prettify-year year)
-                  (put-text-property link-beg type-end 'org-ref-prettify-title title))
-                (put-text-property link-beg type-end 'org-ref-prettify-fresh t)
-                (put-text-property link-beg link-end 'display
-                                   (funcall org-ref-prettify-format-function
-                                            :type type
-                                            :author author
-                                            :year year
-                                            :title title
-                                            :pre-page pre-page
-                                            :page page
-                                            :post-page post-page)))))))))
+                (unless data-at-point
+                  (put-text-property link-beg type-end
+                                     'org-ref-prettify-data data))
+                (put-text-property link-beg type-end
+                                   'org-ref-prettify-fresh t)
+                (put-text-property link-beg link-end
+                                   'display display-string))))))))
   ;; Return nil because we are not adding any face property.
   nil)
 
@@ -233,9 +246,7 @@ part of the citation."
       (save-excursion
         (remove-text-properties
          (point-min) (point-max)
-         '(org-ref-prettify-author nil
-           org-ref-prettify-title nil
-           org-ref-prettify-year nil
+         '(org-ref-prettify-data nil
            org-ref-prettify-fresh nil
            display nil))))))
 
