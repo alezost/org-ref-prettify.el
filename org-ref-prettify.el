@@ -227,21 +227,23 @@ KEY may be a single key or a list of keys."
                                        :post-page post-page))))
                         data))
                (strings (delq nil strings)))
-          (when strings
-            (let* ((link-beg (max link-beg beg))
-                   (link-end (min link-end end))
-                   (display-string (mapconcat #'identity strings "; "))
-                   (display-string (if (equal type "parencite")
-                                       (concat "(" display-string ")")
-                                     display-string)))
-              (with-silent-modifications
-                (unless data-at-point
-                  (put-text-property link-beg type-end
-                                     'org-ref-prettify-data data))
-                (put-text-property link-beg type-end
-                                   'org-ref-prettify-fresh t)
-                (put-text-property link-beg link-end
-                                   'display display-string))))))))
+          (let ((link-beg (max link-beg beg))
+                (link-end (min link-end end)))
+            (when strings
+              (let* ((display-string (mapconcat #'identity strings "; "))
+                     (display-string (if (equal type "parencite")
+                                         (concat "(" display-string ")")
+                                       display-string)))
+                (with-silent-modifications
+                  (unless data-at-point
+                    (put-text-property link-beg type-end
+                                       'org-ref-prettify-data data))
+                  (put-text-property link-beg link-end
+                                     'display display-string))))
+            ;; Add 'fresh' property even for non-existing links to
+            ;; avoid redundant calls of `bibtex-completion-get-entry'.
+            (put-text-property link-beg type-end
+                               'org-ref-prettify-fresh t))))))
   ;; Return nil because we are not adding any face property.
   nil)
 
