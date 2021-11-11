@@ -9,6 +9,12 @@ This Emacs package provides ~org-ref-prettify-mode~.  It displays your
 | Without ~org-ref-prettify-mode~ | With ~org-ref-prettify-mode~ |
 | [[file:pictures/disabled.png]]      | [[file:pictures/enabled.png]]    |
 
+*IMPORTANT* =Org-ref 3.0= is only partially supported:
+- links like =citet:&key= are handled but
+- links like =citet:See &key pg 15= are not handled!
+I.e., you may still use =org-ref-prettify= with =Org-ref 3.0= but some
+org links will not be "prettified".
+
 * Installation
 
 ** Automatic
