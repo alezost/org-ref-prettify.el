@@ -80,7 +80,7 @@
 
 (defvar org-ref-prettify-regexp
   (rx-to-string
-   `(and (? "[[") (group (or ,@org-ref-cite-types))
+   `(and (? "[[") (group (or ,@(mapcar #'car org-ref-cite-types)))
          ":" (group (one-or-more (any alnum "-_,"))) (? "]")
          (? "["
             (? (group (* (any alpha space))) "::")
