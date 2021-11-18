@@ -85,7 +85,9 @@
          (? "["
             (? (group (* (any alpha space))) "::")
             (group (* (any digit "-")))
-            (? "::" (group (* (not "]"))))
+            ;; (* (not "]")) is not supported in `rx' by Emacs <27.
+            ;; See <https://github.com/alezost/org-ref-prettify.el/issues/3>.
+            (? "::" (group (regexp "[^]]*")))
             "]")
          (? "]"))
    t)
