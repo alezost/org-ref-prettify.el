@@ -5,8 +5,8 @@
 
 ;; Author: Alex Kost <alezost@gmail.com>
 ;;         Vitus Schäfftlein <vitusschaefftlein@live.de>
-;; Version: 0.1
-;; Package-Requires: ((emacs "24.3") (org-ref "1.1.0") (bibtex-completion "1.0.0"))
+;; Version: 0.2
+;; Package-Requires: ((emacs "24.3") (org-ref "3.0") (bibtex-completion "1.0.0"))
 ;; URL: https://github.com/alezost/org-ref-prettify.el
 ;; Keywords: convenience
 
@@ -31,11 +31,11 @@
 ;; citation org-ref links in the current buffer are shown in a more
 ;; readable format, e.g.:
 ;;
-;;   [[cite:CoxeterPG2ed][53]]          ->  Coxeter, 1987, p. 53
-;;   [[citetitle:CoxeterPG2ed]]         ->  Projective Geometry
-;;   citeauthor:CoxeterPG2ed            ->  Coxeter
-;;   [[parencite:CoxeterPG2ed][36-44]]  ->  (Coxeter, 1987, pp. 36-44)
-;;
+;;   [[cite:&CoxeterPG2ed pg 53]]       ->  Coxeter, 1987, p. 53
+;;   [[citetitle:&CoxeterPG2ed ch 3]]   ->  Projective Geometry ch 3
+;;   [[parencite:&CoxeterPG2ed 36-44]]  ->  (Coxeter, 1987, pp. 36-44)
+;;   [[citeauthor:See &GorFG; &RotITG; &AschFGT2ed]]  ->  See Gorenstein; Rotman; Aschbacher
+
 ;; The citation links themselves are not changed, they are just
 ;; displayed differently.  You can disable the mode by running "M-x
 ;; org-ref-prettify-mode" again, and you see the original links.
@@ -80,16 +80,10 @@
 
 (defvar org-ref-prettify-regexp
   (rx-to-string
-   `(and (? "[[") (group (or ,@(mapcar #'car org-ref-cite-types)))
-         ":" (? "&") (group (one-or-more (any alnum "-_,"))) (? "]")
-         (? "["
-            (? (group (* (any alpha space))) "::")
-            (group (* (any digit "-")))
-            ;; (* (not "]")) is not supported in `rx' by Emacs <27.
-            ;; See <https://github.com/alezost/org-ref-prettify.el/issues/3>.
-            (? "::" (group (regexp "[^]]*")))
-            "]")
-         (? "]"))
+   `(and "[[" (group (or ,@(mapcar #'car org-ref-cite-types)))
+         ;; (+? (not "]")) is not supported in `rx' by Emacs <27.
+         ;; See <https://github.com/alezost/org-ref-prettify.el/issues/3>.
+         ":" (group (regexp "[^]]+?")) "]]")
    t)
   "Regular expression to match a citation link.")
 
@@ -121,8 +115,20 @@ will not be displayed in the prettified citations.")
                  names
                  " and "))))
 
-(cl-defun org-ref-prettify-format (&key type author year title
-                                        pre-page page post-page)
+(defun org-ref-prettify-postfix-to-page (postfix)
+  "Return formatted page string if POSTFIX contains only page number."
+  (when (string-match
+         ;; (rx string-start (* space) (? "pg" (+ space)) (group (+ (any digit "-"))) (* space) string-end)
+         "\\`[[:space:]]*\\(?:pg[[:space:]]+\\)?\\([[:digit:]-]+\\)[[:space:]]*\\'"
+         postfix)
+    (let ((page (match-string-no-properties 1 postfix)))
+      (concat (if (cdr (split-string page "-"))
+                  "pp." "p.")
+              (if org-ref-prettify-space-before-page-number
+                  " " "")
+              page))))
+
+(cl-defun org-ref-prettify-format (&key type author year title pre post)
   "Return a string formatted for TYPE citation link.
 Any argument must be either a string or nil.
 
@@ -130,30 +136,22 @@ TYPE is a string like \"cite\", \"citetitle\", etc.
 
 AUTHOR, YEAR, TITLE, and PAGE are self-explanatory.
 
-PRE-PAGE and POST-PAGE are what taken from [PRE-PAGE::PAGE::POST-PAGE]
-part of the citation."
-  (let ((page (and page (not (string= "" page))
-                   (concat (if (cdr (split-string page "-"))
-                               "pp." "p.")
-                           (if org-ref-prettify-space-before-page-number
-                               " " "")
-                           page
-                           (and post-page (concat ", " post-page)))))
-        (author (if pre-page
-                    (concat pre-page " " author)
-                  author)))
-    (cond
-     ((equal type "textcite")
-      (concat author " (" year
-              (and page (if year (concat ", " page) page))
-              ")"))
-     ((equal type "citeauthor") author)
-     ((equal type "citeyear") year)
-     ((equal type "citetitle") title)
-     (t
-      (concat author
-              (and year (concat ", " year))
-              (and page (concat ", " page)))))))
+PRE and POST are what taken from the citation before and after &key."
+  (let* ((page (and post (org-ref-prettify-postfix-to-page post)))
+         (str
+          (cond
+           ((equal type "textcite")
+            (concat author " (" year
+                    (and page (if year (concat ", " page) page))
+                    ")"))
+           ((equal type "citeauthor") author)
+           ((equal type "citeyear") year)
+           ((equal type "citetitle") title)
+           (t
+            (concat author
+                    (and year (concat ", " year))
+                    (and page (concat ", " page)))))))
+    (concat pre (if page str (concat str post)))))
 
 (defun org-ref-prettify-get-entry-fields (entry)
   "Return (AUTHOR YEAR TITLE) list for the citation ENTRY."
@@ -191,61 +189,47 @@ KEY may be a single key or a list of keys."
   (let ((beg       (match-beginning 0))
         (end       (match-end 0))
         (type-end  (match-end 1))
-        (type      (match-string-no-properties 1))
-        (key       (match-string-no-properties 2))
-        (pre-page  (match-string-no-properties 3))
-        (page      (match-string-no-properties 4))
-        (post-page (match-string-no-properties 5)))
+        (type      (match-string-no-properties 1)))
     ;; Match data ^^^ should be saved before calling `org-element-context'.
-    (let* ((link (save-excursion
-                   (goto-char type-end)
-                   (org-element-context)))
-           (link-beg (org-element-property :begin link))
-           (link-end (org-element-property :end link))
-           (link-end (and link-end
-                          (- link-end
-                             (or (org-element-property :post-blank link)
-                                 0))))
-           (data-at-point (get-text-property type-end 'org-ref-prettify-data))
-           (fresh         (get-text-property type-end 'org-ref-prettify-fresh)))
-      (when (and link link-beg link-end
-                 (or (not fresh) (null data-at-point)))
-        (let* ((data (or data-at-point
-                         (delq nil
-                               (org-ref-prettify-get-fields
-                                (split-string key ",")))))
+    (let ((link (save-excursion
+                  (goto-char type-end)
+                  (org-element-context)))
+          (prettified (get-text-property type-end 'org-ref-prettified)))
+      (when (and link (not prettified))
+        (let* ((cite-data (org-ref-parse-cite-path
+                           (org-element-property :path link)))
+               (refs (plist-get cite-data :references))
+               (keys (mapcar (lambda (ref)
+                               (plist-get ref :key))
+                             refs))
+               (data (delq nil (org-ref-prettify-get-fields keys)))
                (strings
-                (mapcar (lambda (fields)
-                          (cl-multiple-value-bind (author year title)
-                              fields
-                            (when (or author year title)
-                              (funcall org-ref-prettify-format-function
-                                       :type type
-                                       :author author
-                                       :year year
-                                       :title title
-                                       :pre-page pre-page
-                                       :page page
-                                       :post-page post-page))))
-                        data))
+                (cl-mapcar
+                 (lambda (fields ref)
+                   (cl-multiple-value-bind (author year title)
+                       fields
+                     (when (or author year title)
+                       (let ((pre (plist-get ref :prefix))
+                             (post (plist-get ref :suffix)))
+                         (funcall org-ref-prettify-format-function
+                                  :type type
+                                  :author author
+                                  :year year
+                                  :title title
+                                  :pre pre
+                                  :post post)))))
+                 data refs))
                (strings (delq nil strings)))
-          (let ((link-beg (max link-beg beg))
-                (link-end (min link-end end)))
-            (when strings
-              (let* ((display-string (mapconcat #'identity strings "; "))
-                     (display-string (if (equal type "parencite")
-                                         (concat "(" display-string ")")
-                                       display-string)))
-                (with-silent-modifications
-                  (unless data-at-point
-                    (put-text-property link-beg type-end
-                                       'org-ref-prettify-data data))
-                  (put-text-property link-beg link-end
-                                     'display display-string))))
-            ;; Add 'fresh' property even for non-existing links to
-            ;; avoid redundant calls of `bibtex-completion-get-entry'.
-            (put-text-property link-beg type-end
-                               'org-ref-prettify-fresh t))))))
+          (when strings
+            (let* ((display-string (mapconcat #'identity strings "; "))
+                   (display-string (if (equal type "parencite")
+                                       (concat "(" display-string ")")
+                                     display-string)))
+              (with-silent-modifications
+                (put-text-property beg end 'display display-string))))
+          ;; Add 'prettified' property even for non-existing links to
+          ;; avoid redundant calls of `bibtex-completion-get-entry'.
+          (put-text-property beg type-end 'org-ref-prettified t)))))
   ;; Return nil because we are not adding any face property.
   nil)
 
@@ -257,8 +241,7 @@ KEY may be a single key or a list of keys."
       (save-excursion
         (remove-text-properties
          (point-min) (point-max)
-         '(org-ref-prettify-data nil
-           org-ref-prettify-fresh nil
+         '(org-ref-prettified nil
            display nil))))))
 
 (defun org-ref-prettify-delete-backward-char ()
@@ -330,24 +313,12 @@ loaded."
   :type 'boolean
   :group 'org-ref-prettify)
 
-(defun org-ref-prettify-strip-link (link)
-  "Remove extra brackets if LINK has the form [[something][]]."
-  (let ((linkp (string-match org-ref-prettify-regexp link)))
-    (if linkp
-        (let ((pre-page (match-string 3 link))
-              (page     (match-string 4 link)))
-          (if (or (and page (not (string-equal "" page)))
-                  (and pre-page (not (string-equal "" pre-page))))
-              link
-            (concat (match-string 1 link) ":" (match-string 2 link))))
-      link)))
-
 ;;;###autoload
 (defun org-ref-prettify-edit-link-at-point (&optional where)
   "Edit the current citation link in the minibuffer.
 WHERE means where the point should be put in the minibuffer.  If
 it is nil, try to be smart about its placement; otherwise, it can
-be one of: `type', `key', `page', `beg', or `end'."
+be one of: `type', `beg', or `end'."
   (interactive)
   (let ((pos (point))
         (eol (line-end-position))
@@ -362,21 +333,17 @@ be one of: `type', `key', `page', `beg', or `end'."
                 (setq done t)
                 (let* ((mb-pos
                         (unless (eq 'end where)
-                          (- (or (cl-case where
-                                   (beg beg)
-                                   (type (match-end 1))
-                                   (key  (match-end 2))
-                                   (page (match-end 4))
-                                   (t (or (match-end 4)
-                                          (match-end 1))))
-                                 beg)
+                          (- (cl-case where
+                               (beg beg)
+                               (type (match-end 1))
+                               (t (match-end 2)))
                              beg -1)))
                        (new (read-string "Link: "
                                          (cons (match-string-no-properties 0)
                                                mb-pos))))
                   (goto-char beg)
                   (delete-region beg end)
-                  (insert (org-ref-prettify-strip-link new)))))
+                  (insert new))))
           (user-error "Not at a citation link"))))))
 
 ;;;###autoload

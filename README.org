@@ -4,16 +4,13 @@
 * About
 
 This Emacs package provides ~org-ref-prettify-mode~.  It displays your
-[[https://github.com/jkitchin/org-ref][org-ref]] citation links in a more friendly and readable format.
+[[https://github.com/jkitchin/org-ref][Org-Ref 3.0]] citation links in a more friendly and readable format.
 
 | Without ~org-ref-prettify-mode~ | With ~org-ref-prettify-mode~ |
 | [[file:pictures/disabled.png]]      | [[file:pictures/enabled.png]]    |
 
-*IMPORTANT* =Org-ref 3.0= is only partially supported:
-- links like =citet:&key= are handled but
-- links like =citet:See &key pg 15= are not handled!
-I.e., you may still use =org-ref-prettify= with =Org-ref 3.0= but some
-org links will not be "prettified".
+*Note* only proper Org links (links in brackets) are supported.
+I.e., =[[cite:…]]= is "prettified" but =cite:…= is not.
 
 * Installation
 
@@ -54,10 +51,6 @@ minibuffer using one of the following methods:
 
 - moving the point to a link and pressing =C-RET=,
 - right-clicking on a link with your mouse.
-
-Note that if you leave a link of the following type =[[citation][]]=
-(the second pair of brackets is empty), it will be changed to =citation=
-as the former is not a proper org link.
 
 * Credits
 
