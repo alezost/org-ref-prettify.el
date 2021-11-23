@@ -346,6 +346,14 @@ be one of: `type', `beg', or `end'."
                   (insert new))))
           (user-error "Not at a citation link"))))))
 
+(defun org-ref-prettify-edit-link-at-point-maybe ()
+  "Edit the current citation link in the minibuffer.
+See `org-ref-prettify-edit-link-at-point' for details."
+  (interactive)
+  (if (get-text-property (point) 'org-ref-prettified)
+      (org-ref-prettify-edit-link-at-point)
+    (call-interactively (lookup-key org-mode-map [C-return]))))
+
 ;;;###autoload
 (defun org-ref-prettify-edit-link-at-mouse (event &optional where)
   "Edit the citation link at mouse position in the minibuffer.
@@ -355,9 +363,24 @@ See `org-ref-prettify-edit-link-at-point' for the meaning of WHERE."
   (mouse-set-point event)
   (org-ref-prettify-edit-link-at-point where))
 
+(defun org-ref-prettify-edit-link-at-mouse-maybe (event &optional where)
+  "Edit the citation link at mouse position in the minibuffer.
+This should be bound to a mouse click EVENT type.
+See `org-ref-prettify-edit-link-at-point' for the meaning of WHERE."
+  (interactive "e")
+  (mouse-set-point event)
+  (if (get-text-property (point) 'org-ref-prettified)
+      (org-ref-prettify-edit-link-at-point where)
+    (org-find-file-at-mouse event)))
+
 (when org-ref-prettify-bind-edit-keys
-  (define-key org-ref-cite-keymap [C-return] 'org-ref-prettify-edit-link-at-point)
-  (define-key org-ref-cite-keymap [mouse-3] 'org-ref-prettify-edit-link-at-mouse))
+  ;; We cannot use `org-ref-cite-keymap' because this keymap is active
+  ;; only when the point is placed after "link-type:".  But for the
+  ;; prettified link, the point is placed at the first symbol.
+  ;; XXX Using `org-mouse-map' like this is horrible but I do not know
+  ;; how this can be done another way.
+  (define-key org-mouse-map [C-return] 'org-ref-prettify-edit-link-at-point-maybe)
+  (define-key org-mouse-map [mouse-3] 'org-ref-prettify-edit-link-at-mouse-maybe))
 
 (provide 'org-ref-prettify)
 
