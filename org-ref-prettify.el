@@ -313,6 +313,28 @@ loaded."
   :type 'boolean
   :group 'org-ref-prettify)
 
+(defvar org-ref-prettify-minibuffer-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map minibuffer-local-map)
+    (define-key map (kbd "TAB") 'org-ref-prettify-minibuffer-move-next)
+    map)
+  "Keymap for reading citation links from the minibuffer.")
+
+(defun org-ref-prettify-minibuffer-move-next ()
+  "Move the point to the next &key or to the end of the link."
+  (interactive)
+  (let ((pos (point)))
+    (if (re-search-forward "&" nil t)
+        (if (= pos (1- (point)))
+            (org-ref-prettify-minibuffer-move-next)
+          (backward-char))
+      (if (looking-at-p "]]")
+          (progn
+            (goto-char (point-min))
+            (org-ref-prettify-minibuffer-move-next))
+        (re-search-forward "]]" nil t)
+        (backward-char 2)))))
+
 ;;;###autoload
 (defun org-ref-prettify-edit-link-at-point (&optional where)
   "Edit the current citation link in the minibuffer.
@@ -338,9 +360,11 @@ be one of: `type', `beg', or `end'."
                                (type (match-end 1))
                                (t (match-end 2)))
                              beg -1)))
-                       (new (read-string "Link: "
-                                         (cons (match-string-no-properties 0)
-                                               mb-pos))))
+                       (new (read-from-minibuffer
+                             "Link: "
+                             (cons (match-string-no-properties 0)
+                                   mb-pos)
+                             org-ref-prettify-minibuffer-map)))
                   (goto-char beg)
                   (delete-region beg end)
                   (insert new))))

@@ -52,6 +52,9 @@ minibuffer using one of the following methods:
 - moving the point to a link and pressing =C-RET=,
 - right-clicking on a link with your mouse.
 
+In the minibuffer, you can press =TAB= to switch between =&key=
+positions (if there are several keys) and the end of the current link.
+
 * Credits
 
 This package could not have been developed without the collaboration of
