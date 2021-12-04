@@ -108,10 +108,10 @@ will not be displayed in the prettified citations.")
                   author))
                 " and ")))
     (if (> (length names) 3)
-        (concat (car (split-string (car names) ", "))
+        (concat (car (split-string (car names) ", *"))
                 " et al.")
       (mapconcat (lambda (str)
-                   (car (split-string str ", ")))
+                   (car (split-string str ", *")))
                  names
                  " and "))))
 
