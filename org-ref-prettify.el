@@ -151,7 +151,14 @@ PRE and POST are what taken from the citation before and after &key."
             (concat author
                     (and year (concat ", " year))
                     (and page (concat ", " page)))))))
-    (concat pre (if page str (concat str post)))))
+    (concat pre
+            (if (or page (null post))
+                str
+              (concat str
+                      ;; Add leading space to POST if it does not have it.
+                      (if (string-match-p "\\` " post)
+                          post
+                        (concat " " post)))))))
 
 (defun org-ref-prettify-get-entry-fields (entry)
   "Return (AUTHOR YEAR TITLE) list for the citation ENTRY."
