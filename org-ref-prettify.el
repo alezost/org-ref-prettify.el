@@ -118,8 +118,8 @@ will not be displayed in the prettified citations.")
 (defun org-ref-prettify-postfix-to-page (postfix)
   "Return formatted page string if POSTFIX contains only page number."
   (when (string-match
-         ;; (rx string-start (* space) (? "pg" (+ space)) (group (+ (any digit "-"))) (* space) string-end)
-         "\\`[[:space:]]*\\(?:pg[[:space:]]+\\)?\\([[:digit:]-]+\\)[[:space:]]*\\'"
+         ;; (rx string-start (* space) (? "pg" (? ".") (+ space)) (group (+ (any digit "-"))) (* space) string-end)
+         "\\`[[:space:]]*\\(?:pg\\.?[[:space:]]+\\)?\\([[:digit:]-]+\\)[[:space:]]*\\'"
          postfix)
     (let ((page (match-string-no-properties 1 postfix)))
       (concat (if (cdr (split-string page "-"))
