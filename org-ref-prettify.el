@@ -199,6 +199,8 @@ KEY may be a single key or a list of keys."
         (let* ((cite-data (org-ref-parse-cite-path
                            (org-element-property :path link)))
                (refs (plist-get cite-data :references))
+               (prefix (plist-get cite-data :prefix))
+               (suffix (plist-get cite-data :suffix))
                (keys (mapcar (lambda (ref)
                                (plist-get ref :key))
                              refs))
@@ -209,8 +211,8 @@ KEY may be a single key or a list of keys."
                    (cl-multiple-value-bind (author year title)
                        fields
                      (when (or author year title)
-                       (let ((pre (plist-get ref :prefix))
-                             (post (plist-get ref :suffix)))
+                       (let ((pre (or (plist-get ref :prefix) prefix))
+                             (post (or (plist-get ref :suffix) suffix)))
                          (funcall org-ref-prettify-format-function
                                   :type type
                                   :author author
