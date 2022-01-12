@@ -1,6 +1,6 @@
 ;;; org-ref-prettify.el --- Prettify org-ref citation links  -*- lexical-binding: t -*-
 
-;; Copyright © 2021 Alex Kost
+;; Copyright © 2021–2022 Alex Kost
 ;; Copyright © 2021 Vitus Schäfftlein
 
 ;; Author: Alex Kost <alezost@gmail.com>
@@ -231,7 +231,7 @@ KEY may be a single key or a list of keys."
                (strings (delq nil strings)))
           (when strings
             (let* ((display-string (mapconcat #'identity strings "; "))
-                   (display-string (if (equal type "parencite")
+                   (display-string (if (member type '("parencite" "citep"))
                                        (concat "(" display-string ")")
                                      display-string)))
               (with-silent-modifications
