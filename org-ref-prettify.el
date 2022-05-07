@@ -163,7 +163,8 @@ PRE and POST are what taken from the citation before and after &key."
 (defun org-ref-prettify-get-entry-fields (entry)
   "Return (AUTHOR YEAR TITLE) list for the citation ENTRY."
   (if entry
-      (let ((author (cdr (assoc "author" entry)))
+      (let ((author (cdr (or (assoc "author" entry)
+                             (assoc "editor" entry))))
             (year   (or (cdr (assoc "year" entry))
                         (let ((date (cdr (assoc "date" entry))))
                           (and date
