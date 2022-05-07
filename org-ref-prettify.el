@@ -78,6 +78,10 @@
   :type 'boolean
   :group 'org-ref-prettify)
 
+(defvar org-ref-prettify-paren-types
+  '("parencite" "parencites" "citep")
+  "List of cite types that should be displayed in parentheses.")
+
 (defvar org-ref-prettify-regexp
   (rx-to-string
    `(and "[[" (group (or ,@(mapcar #'car org-ref-cite-types)))
@@ -232,7 +236,7 @@ KEY may be a single key or a list of keys."
                (strings (delq nil strings)))
           (when strings
             (let* ((display-string (mapconcat #'identity strings "; "))
-                   (display-string (if (member type '("parencite" "citep"))
+                   (display-string (if (member type org-ref-prettify-paren-types)
                                        (concat "(" display-string ")")
                                      display-string)))
               (with-silent-modifications
